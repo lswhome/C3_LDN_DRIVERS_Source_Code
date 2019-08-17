@@ -1,0 +1,272 @@
+﻿// ---------------------------------------------------------------------------
+
+#include <vcl.h>
+#include "inifiles.hpp"
+#pragma hdrstop
+
+#include "Unit1.h"
+#include "FunctionEdit.h"
+#include "FIFO_Class_Manager.h"
+
+// ---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+
+TMainForm *MainForm;
+MyRwHid *MyHid;
+int MouseX, MouseY;
+bool xCapture = 0;
+int iX0;
+int iY0;
+
+// ---------------------------------------------------------------------------
+__fastcall TMainForm::TMainForm(TComponent* Owner) : TForm(Owner) {
+	// 让窗口居中
+	IsCloseApplication = 0; // 1=将要关闭程序
+	MainForm->Caption = "C3-LDN 键盘配置工具 V1.0(连接断开)";
+	MainForm->Left = (Screen->Width - MainForm->Width) / 2;
+	MainForm->Top = (Screen->Height - MainForm->Height) / 2;
+	MyHid = new MyRwHid(MainForm->Handle); // 启动HID驱动
+
+	memset(&CpRun, 0, sizeof(CpRun));
+	InitNormalLayer(); // 常规层数据初始化
+
+	Timer1->Interval = 1000;
+	Timer1->Enabled = true; // 启动定时器
+
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::Timer1Timer(TObject *Sender) {
+	// 定时器
+	if (MyHid->GetConnectType() != 0) // 如果HID已连接，则直接返回
+	{
+		return;
+	}
+	if (MyHid->QueryMyHidDevice() == true) {
+		// 如果连接正常
+		Timer1->Enabled = false; // 停止定时器
+		switch(MyHid->GetConnectType()) {
+		case _DEF_USB_CONNECT_TYPE_KEYBOARD_FW: {
+				MainForm->Caption = "C3-LDN 键盘硬件配置工具 V1.0(已连接)";
+				MyHid->StartRecvThread(); // 启动接收线程
+				SendCmd(USB_DEF_CMD_GET_HW_FW_INFO, 0x00, 0x00);
+			}break;
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::On_HidDisConnect(Messages::TMessage &Message) {
+	// HID连接被断开
+	MyHid->SetDisConnect(); // 设置为断开连接方式
+
+	MainForm->Caption = "C3-LDN 键盘配置工具 V1.0(连接断开)";
+	Timer1->Enabled = true;
+	TForm::Dispatch(&Message);
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::On_GetRecvData(Messages::TMessage &Message)
+// 收到了数据接收完成的消息
+{
+
+	union CP_UNION_ONE_PACK_64BYTE RecvPacks; // 当前数据包缓冲区
+	byte RePortID;
+
+	if (IsCloseApplication == 1) // 如果程序要关闭，则什么也不做了
+	{
+		return;
+	}
+
+	MyHid->GetRecvDataFromFifoBuff(&RePortID, &RecvPacks);
+
+	// 键盘固件通信
+	if (MyHid->GetConnectType() == _DEF_USB_CONNECT_TYPE_KEYBOARD_FW) // 键盘固件
+	{
+		switch(RecvPacks.Cmd.Cmd) {
+		case USB_DEF_CMD_GET_HW_FW_INFO: // 设备信息
+			{
+				GetDeviceInfo(&RecvPacks);
+			}break;
+		case USB_DEF_CMD_PHY_CFG_KEY_SCAN_GET: // 扫描配置
+			{
+				GetKeyScanCfgFormDevice(&RecvPacks);
+			}break;
+		case USB_DEF_CMD_PHY_CFG_LED_GET: // LED配置
+			{
+				GetLedCfgFormDevice(&RecvPacks);
+			}break;
+		}
+	}
+	TForm::Dispatch(&Message);
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::On_SendDataSuccess(Messages::TMessage &Message)
+// 数据发送完成
+{
+
+	if (Message.WParam == ON_SEND_DATA_PARA_ERROR) // 数据发送失败
+	{
+		TForm::Dispatch(&Message);
+		ShowMessage("数据发送失败！");
+		return;
+	}
+	TForm::Dispatch(&Message);
+}
+
+// ------------------------------------------------------------------------------
+void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action) {
+	// 窗口被关闭，程序将要退出
+	IsCloseApplication = 1;
+	MyHid->StopRecvThread();
+	MyHid->StopSendThread();
+	delete MyHid;
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::SendCmd(byte Cmd, byte Para1, byte Para2) {
+
+	union CP_UNION_ONE_PACK_64BYTE Pack;
+	Pack.Cmd.Cmd = Cmd;
+	Pack.Cmd.Pa1.HL.u8_1 = Para1;
+	Pack.Cmd.Pa1.HL.u8_2 = Para2;
+	MyHid->SendDataByFifo(0, &Pack);
+	MyHid->StartSendThread(); // 启动发送线程
+
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::SendRawData(byte ReportID, void *Data) {
+
+	union CP_UNION_ONE_PACK_64BYTE *Pack = (union CP_UNION_ONE_PACK_64BYTE*)
+	Data;
+	MyHid->SendDataByFifo(0, Pack);
+	MyHid->StartSendThread(); // 启动发送线程
+
+}
+// ---------------------------------------------------------------------------
+
+ULONG __fastcall TMainForm::SendDataByPack(byte ReportID, byte Cmd,
+	uint16_t ID, void *Data, ULONG Size) // 把数据分包发送
+{
+
+	union CP_UNION_ONE_PACK_64BYTE Pack; // 分包后的数据
+	byte *pData = (byte*)Data;
+	ULONG SendSize = 0;
+	ULONG PackCount = 0;
+
+	Pack.LongDataPack.Cmd = Cmd;
+	Pack.LongDataPack.TotalPackSize = Size;
+	Pack.LongDataPack.id = ID;
+
+	while (SendSize < Size) {
+		if ((Size - SendSize) > _DEF_RW_DATA_PACK_SIZE) {
+			// 如果不是最后一包数据，则为满包数据(58Byte)
+			Pack.LongDataPack.CurrPackSize = CP_DEF_MAX_CARRY_DATA_SIZE;
+		}
+		else {
+			// 否则为剩下的数据
+			Pack.LongDataPack.CurrPackSize = Size - SendSize;
+		}
+		// 复制数据到缓冲区
+		memcpy(&Pack.LongDataPack.PackData, pData,
+			Pack.LongDataPack.CurrPackSize);
+		// 累计已发送的
+		SendSize += Pack.LongDataPack.CurrPackSize;
+		pData += Pack.LongDataPack.CurrPackSize;
+		// 把数据放入缓冲区中，待发送
+		MyHid->SendDataByFifo(0, &Pack);
+		PackCount++;
+	}
+	return(PackCount);
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::GetDeviceInfo(void *pData) // 获取设备的基本信息
+{
+	memcpy(&CpRun.DeviceInfo, pData, sizeof(CpRun.DeviceInfo));
+	MainForm->Caption = String().sprintf(L"%s HwVer:%d.%d", MainForm->Caption,
+		CpRun.DeviceInfo.HwVer >> 4, CpRun.DeviceInfo.HwVer & 0x0f);
+	MainForm->Caption = String().sprintf(L"%s FwVer:%d.%d", MainForm->Caption,
+		CpRun.DeviceInfo.FwVer >> 4, CpRun.DeviceInfo.FwVer & 0x0f);
+	MainForm->Caption = String().sprintf(L"%s BootLoaderVer:%d.%d",
+		MainForm->Caption, CpRun.DeviceInfo.BlVer >> 4,
+		CpRun.DeviceInfo.BlVer & 0x0f);
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::GetKeyScanCfgFormDevice(void *pData) // 从设备获取配置
+{
+	union CP_UNION_ONE_PACK_64BYTE *PackData = (union CP_UNION_ONE_PACK_64BYTE*)
+	pData; // 临时数据包
+	static uint16_t TotalSize = 0;
+	static uint8_t RecvDataBuff[4096]; // 2KB的数据接收缓冲区
+
+	// 复制收到的数据到接收缓冲区
+	memcpy(RecvDataBuff + TotalSize, PackData->LongDataPack.PackData,
+		PackData->LongDataPack.CurrPackSize);
+
+	// 累计收到的字节数
+	TotalSize += PackData->LongDataPack.CurrPackSize;
+
+	// 判断数据是否接收完毕
+	if (TotalSize >= sizeof(PhyCfg.KeyScanCfg)) {
+		// 如果接收完毕
+		TotalSize = 0; // 接收总数归零
+		// 复制完整的数据到层数据中
+		memcpy(&PhyCfg.KeyScanCfg, RecvDataBuff, sizeof(PhyCfg.KeyScanCfg));
+		// 显示内容
+
+	}
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::GetLedCfgFormDevice(void *pData) // 从设备获取LED的扫描配置
+{
+	// 获取配置
+	union CP_UNION_ONE_PACK_64BYTE *PackData = (union CP_UNION_ONE_PACK_64BYTE*)
+	pData; // 临时数据包
+	static uint16_t TotalSize = 0;
+	static uint8_t RecvDataBuff[4096]; // 2KB的数据接收缓冲区
+
+	// 复制收到的数据到接收缓冲区
+	memcpy(RecvDataBuff + TotalSize, PackData->LongDataPack.PackData,
+		PackData->LongDataPack.CurrPackSize);
+
+	// 累计收到的字节数
+	TotalSize += PackData->LongDataPack.CurrPackSize;
+
+	// 判断数据是否接收完毕
+	if (TotalSize >= sizeof(PhyCfg.LedCfg)) {
+		// 如果接收完毕
+		TotalSize = 0; // 接收总数归零
+		// 复制完整的数据到层数据中
+		memcpy(&PhyCfg.LedCfg, RecvDataBuff, sizeof(PhyCfg.LedCfg));
+		// 显示内容
+	}
+}
+// ---------------------------------------------------------------------------
+
+void __fastcall TMainForm::NormalLayerLabelClick(TObject *Sender)
+{
+	// 标签单击事件
+	int i;
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TMainForm::InitNormalLayer(void) // 初始化常规层的功能
+{
+	//
+	CpRun.NormalLayer.LabelPan[0] = Panel1;
+	CpRun.NormalLayer.LabelPan[1] = Panel2;
+	CpRun.NormalLayer.LabelPan[2] = Panel3;
+	CpRun.NormalLayer.LabelPan[3] = Panel4;
+	CpRun.NormalLayer.LabelPan[4] = Panel5;
+	CpRun.NormalLayer.LabelPan[5] = Panel6;
+	CpRun.NormalLayer.LabelPan[6] = Panel7;
+	CpRun.NormalLayer.LabelPan[7] = Panel8;
+}
+

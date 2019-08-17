@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2019/01/19 13:36:02.133.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\FuncSelect.h=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.h</Transaction>
+    <Transaction>2019/01/19 13:36:02.133.dfm,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\FuncSelect.dfm=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.dfm</Transaction>
+    <Transaction>2019/01/19 13:36:02.133.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\FuncSelect.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/01/22 22:26:20.187.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 22:31:39.057.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\File1.cpp</Transaction>
+    <Transaction>2019/01/22 22:31:55.785.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 22:32:12.468.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.h=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\File1.h</Transaction>
+    <Transaction>2019/01/22 22:36:35.633.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.h=</Transaction>
+    <Transaction>2019/01/22 22:36:39.590.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\File1.cpp</Transaction>
+    <Transaction>2019/01/22 22:37:54.016.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 22:46:02.948.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 22:52:02.474.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\TMyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 22:57:26.967.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\TMyListView.cpp=</Transaction>
+    <Transaction>2019/01/22 23:01:31.075.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\File1.cpp</Transaction>
+    <Transaction>2019/01/22 23:07:24.470.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.h=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\File1.h</Transaction>
+    <Transaction>2019/01/22 23:07:44.834.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.h=</Transaction>
+    <Transaction>2019/01/23 11:48:33.385.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\MyListView.cpp=</Transaction>
+    <Transaction>2019/01/27 13:00:52.214.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\nSel.h=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.h</Transaction>
+    <Transaction>2019/01/27 13:00:52.214.dfm,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\nSel.dfm=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.dfm</Transaction>
+    <Transaction>2019/01/27 13:00:52.214.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\nSel.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/01/27 15:22:56.268.dfm,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\nSel.dfm=</Transaction>
+    <Transaction>2019/01/27 15:22:56.268.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\nSel.cpp=</Transaction>
+    <Transaction>2019/01/27 15:25:00.840.cpp,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\NumSelect.cpp=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/01/27 15:25:00.840.dfm,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\NumSelect.dfm=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.dfm</Transaction>
+    <Transaction>2019/01/27 15:25:00.840.h,G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\NumSelect.h=G:\STM32\作品\KeyBoard\C3_LDN_60\程序\ConfigTools\Unit2.h</Transaction>
+    <Transaction>2019/01/27 20:44:35.000.151,=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\LDNKBConfigTools_Icon.ico</Transaction>
+    <Transaction>2019/01/28 20:56:06.000.291,=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/01/28 20:56:18.000.993,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\TimeSelect.cpp=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/01/28 20:56:18.000.993,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\TimeSelect.h=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.h</Transaction>
+    <Transaction>2019/01/28 20:56:18.000.993,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\TimeSelect.dfm=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.dfm</Transaction>
+    <Transaction>2019/02/03 13:52:27.000.772,=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.cpp</Transaction>
+    <Transaction>2019/02/03 13:54:47.000.105,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.dfm=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\LedSelect.dfm</Transaction>
+    <Transaction>2019/02/03 13:54:47.000.105,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.cpp=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\LedSelect.cpp</Transaction>
+    <Transaction>2019/02/03 13:54:47.000.105,G:\STM32\作品\KeyBoard\通用固件\ConfigTools\Unit2.h=G:\STM32\作品\KeyBoard\通用固件\ConfigTools\LedSelect.h</Transaction>
+  </Transactions>
+</BorlandProject>

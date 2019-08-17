@@ -1,0 +1,1615 @@
+﻿//---------------------------------------------------------------------------
+
+#ifndef Unit1H
+#define Unit1H
+//---------------------------------------------------------------------------
+#include <Classes.hpp>
+#include <Controls.hpp>
+#include <StdCtrls.hpp>
+#include <Forms.hpp>
+#include <ComCtrls.hpp>
+#include "RecvAndSendData.h"
+#include <ExtCtrls.hpp>
+#include <Buttons.hpp>
+#include <Graphics.hpp>
+#include <ButtonGroup.hpp>
+#include <XPMan.hpp>
+#include <Menus.hpp>
+#include <Grids.hpp>
+#include <CheckLst.hpp>
+#include <Dialogs.hpp>
+#include <GIFImg.hpp>
+
+//------------------------------------------------------------------------------
+//与BootLoader的通信命令
+
+//PC发来的命令
+#define	_DEF_USB_RECV_NONE										0				//空命令
+#define	_DEF_USB_RECV_FW_HEAD									1				//主机发来固件的数据结构
+#define	_DEF_USB_RECV_FW_DATA									2				//主机发来固件的数据
+#define	_DEF_USB_RECV_NEED_HW_INFO								3				//主机要获取硬件的信息
+#define	_DEF_USB_RECV_RUN_APP									4				//主机要求启动APP
+
+
+
+//发给PC的命令
+#define	_DEF_USB_SEND_NONE										0				//空命令
+#define	_DEF_USB_SEND_ERASE_FLASH_DONE							1				//片内FLASH擦除成功
+#define	_DEF_USB_SEND_ERASE_W25Q_DONE							2				//发送成功的消息
+#define	_DEF_USB_SEND_HW_INFO									3				//发送硬件信息给主机
+#define	_DEF_USB_SEND_ERASE_FLASH_ERR							4				//擦除片内FLASH失败
+#define	_DEF_USB_SEND_FW_PROGRAM_DONE							5				//固件编程完毕
+#define	_DEF_USB_SEND_FW_PROGRAM_ERR							6				//固件编程失败
+
+
+
+
+
+
+
+
+
+
+//---------------------键盘通信用的代码-------------------------------------------
+//----------发送给设备的命令
+//发给设备的命令
+#define	_DEF_USB_KB_SEND_CMD_NONE												0	//空命令
+#define	_DEF_USB_KB_SEND_CMD_GET_KB_INFO										1	//获取键盘的信息
+#define	_DEF_USB_KB_SEND_CMD_GET_SYS_CONFIG										2	//主机要求获取系统配置信息
+#define	_DEF_USB_KB_SEND_CMD_GET_TRIG_LAYER_CONFIG								3	//获取触发层的数据
+#define	_DEF_USB_KB_SEND_CMD_GET_KEY_LOCK_CONFIG								4	//获取锁定键的配置
+#define	_DEF_USB_KB_SEND_CMD_GET_MACRO_CONFIG									5	//获取宏的配置
+
+#define	_DEF_USB_KB_SEND_CMD_SET_TO_BOOTLOADER									6	//要求切换到BOOTLOADER
+
+#define	_DEF_USB_KB_SEND_CMD_SET_SYS_CONFIG										7	//主机发来设备系统配置的信息
+#define	_DEF_USB_KB_SEND_CMD_SET_TRIG_LAYER_CONFIG								8	//主机发来触发层的配置信息
+#define	_DEF_USB_KB_SEND_CMD_SET_KEY_LOCK_CONFIG								9	//主机发来锁定键的配置信息
+#define	_DEF_USB_KB_SEND_CMD_SET_MACRO_CONFIG									10	//主机发来宏的配置信息
+
+
+
+
+
+
+//背光控制
+//背光控制(固定灯效)
+#define	_DEF_USB_BKL_RECV_CMD_SET_COLOR_LEVEL									20	//设置背光的亮度等级
+#define	_DEF_USB_BKL_RECV_CMD_SET_EFFECT_INDEX									21	//设置背光的效果，参数指定了显示第几个灯效
+#define	_DEF_USB_BKL_RECV_CMD_SET_EFFECT_UP										22	//设置背光的效果，这个向上切换一个灯效
+#define	_DEF_USB_BKL_RECV_CMD_SET_EFFECT_DOWN									23	//设置背光的效果，这个向下切换一个灯效
+#define	_DEF_USB_BKL_RECV_CMD_SET_EFFECT_SPEED									24	//设置背光的动态灯效运行速度
+#define	_DEF_USB_BKL_RECV_CMD_GET_BKL_ALL_PARA									25	//主机要求获取背光的所有运行参数（亮度等级、灯效、速度等）
+
+
+
+
+
+
+
+
+
+//程序使用的定义
+#define		_DEF_PACK_FILE_HEAD_1				0x82
+#define		_DEF_PACK_FILE_HEAD_2				0x81
+
+
+
+//---------------------------BootLoader使用的数据结构------------------------
+#pragma pack(1)
+
+//USB通信的数据包
+//BOOTLOADER的数据结构
+
+//发送命令之用
+struct _DEF_PACK_SEND_CMD_64BYTE
+{
+	byte			Cmd;
+	byte			Para8_1;
+	byte			Para8_2;
+	uint16_t		Para16_1;
+	uint16_t		Para16_2;
+	uint32_t		Para32_1;
+	uint32_t		Para32_2;
+	byte			None[49];//暂时无用的数据
+};
+
+//固件的数据头
+struct _DEF_PACK_FILE_HEAD_STRUCT			//固件数据头
+{
+	uint8_t			Head1;						//文件头1=0x82
+	uint8_t			Head2;						//文件头2=0x81
+	uint8_t			Hw_Ver;						//适用的硬件版本BCD码
+	uint8_t			BL_Ver;						//适用的BL版本BCD码
+
+	//键盘固件数据
+	uint8_t			KB_Fw_Ver;					//键盘固件版本
+	uint8_t			KB_ErasePage_Count;			//要擦除多少页
+	uint32_t		KB_Fw_Size;					//固件的大小
+
+	uint16_t		W25Qxx_Erase_StartSector;	//W25Qxx存储器从哪个页开始擦除
+	uint16_t		W25Qxx_Erase_Count;			//擦除多少页，这个数如果为0，则不执行擦除操作
+};
+
+struct _DEF_FW_INFO_STRUCT						//发送给PC的固件信息
+{
+	uint8_t			Cmd;
+	uint8_t			Hw_Ver;
+	uint8_t			BL_Ver;
+};
+
+
+
+//超过64字节的数据包，采用多次分包发送，采用以下数据结构
+struct	_DEF_SEND_DATA_PACK_64BYTE
+{
+	uint8_t			Cmd;									//命令以及数据类型
+	uint8_t			CurrPackDataSize;						//本包数据大小
+	uint32_t		TotalDataSize;							//总数据大小，不超过64K
+	uint16_t		LayerID_GroupID;						//层ID或者组ID
+	uint8_t			PackData[_DEF_RW_DATA_PACK_SIZE];		//数据包的数据
+};
+
+
+
+
+
+
+
+
+
+
+
+//键盘相关的数据结构
+
+struct	_DEF_PACK_KB_HW_INFO
+{
+	uint8_t								Cmd;	 //命令
+	uint8_t								HwVer;	 //硬件版本
+	uint8_t								FwVer;	 //固件版本
+	uint8_t								BlVer;	 //BootLoader版本
+};
+
+//背光命令
+
+//设置三个通道的亮度等级
+struct	_DEF_PACK_BKL_SET_BKL_LIG_LEVEL
+{
+	uint8_t									Cmd;
+	uint8_t									R_Level;
+	uint8_t									G_Level;
+	uint8_t									B_Level;
+};
+
+//设置展示第几个灯效
+struct	_DEF_PACK_BKL_SET_BKL_EFFECTINDEX
+{
+	uint8_t									Cmd;
+	uint8_t									Index;
+};
+
+//切换灯效
+struct	_DEF_PACK_BKL_SET_BKL_UP_DOWN_EFFECTINDEX
+{
+	uint8_t									Cmd;
+	uint8_t									SetMode; //0=上一个灯效，1=下一个灯效
+	uint8_t									SetFunc; //0=设置背光的灯效，1=设置ESC的灯效，2=设置STATIC的灯效
+};
+
+//设置灯效运行速度
+struct	_DEF_PACK_BKL_SET_BKL_SPEED
+{
+	uint8_t									Cmd;
+	uint8_t									SetModel;	//0=设置背光的灯效，1=自定义灯效,2=esc灯效,3=兼容状态灯灯效,4=独立状态灯灯效
+	uint8_t									SetID;  	//0=设置ID
+	uint8_t									SetSpeed;	//这个灯效的速度
+};
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//键盘命令
+struct _DEF_PACK_KB_GET_LAYER_GROUP_DATA
+{
+	uint8_t									Cmd;
+	uint16_t								ID;
+};
+
+
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//USB收发用的数据结构
+union	_DEF_SEND_DATA_PACK_STRUCT
+{
+	uint8_t													RawData[_DEF_RECV_DATA_SIZE];//原始数据
+	//BL用
+	struct _DEF_PACK_FILE_HEAD_STRUCT						Fw_Head;//固件数据头
+	struct _DEF_FW_INFO_STRUCT								Bl_FwInfo;//BootLoader的硬件信息
+
+	//公用
+	struct _DEF_PACK_SEND_CMD_64BYTE						SendCmd;//发送简单命令
+	struct _DEF_SEND_DATA_PACK_64BYTE						SendData;//发送数据包（通常为多包数据）
+
+	//键盘固件用
+	struct	_DEF_PACK_KB_HW_INFO							KB_Hw_Info; //键盘的硬件信息
+
+
+	//背光使用
+	struct	_DEF_PACK_BKL_SET_BKL_LIG_LEVEL					BKL_SetRGBLevel;//设置背光亮度
+	struct	_DEF_PACK_BKL_SET_BKL_EFFECTINDEX				BKL_SetEffIndex;//设置背光的灯效索引
+	struct	_DEF_PACK_BKL_SET_BKL_UP_DOWN_EFFECTINDEX		BKL_SWEffIndex;//切换灯效
+	struct	_DEF_PACK_BKL_SET_BKL_SPEED						BKL_SetEffSpeed;//设置背光的速度
+
+
+	//键盘用
+	struct _DEF_PACK_KB_GET_LAYER_GROUP_DATA				KB_GetLayer_Group_Data;//获取层，或者锁定键，或者宏，或者自定义灯效的数据
+
+
+
+};
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+//---------------------------键盘使用的数据结构------------------------------------------------------------------------------------------------------------
+//----------功能关联数据结构
+//1、普通按键的数据结构
+struct _KEYSCAN_ONE_NORMAL_KEY_FUNC
+{
+	uint8_t		FuncID;
+	uint8_t		index;
+	uint8_t		Status;
+	uint8_t		PressCount;
+};
+
+//2、多媒体按键的数据结构
+struct _KEYSCAN_ONE_MEDIA_KEY_FUNC
+{
+	uint8_t		FuncID;
+	uint8_t		Status;
+	uint16_t	MediaKeyIndex;
+};
+
+//3、打开关闭某一层
+struct	_DEF_STRUCT_LAYER_ENABLE
+{
+	uint8_t		FuncID;							//功能ID
+	uint8_t		LayerID;						//层ID
+	uint8_t		Enable;							//开关，1=打开，0=关闭
+	uint8_t		None;								//未使用
+};
+
+//4、把某层设置为最高优先级Priority
+struct _DEF_STRUCT_LAYER_SET_TOP_PRIORITY
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				LayerID;						//要设置的层ID
+	uint16_t			None;								//未使用
+};
+
+//5、把设置某层的优先级
+struct _DEF_STRUCT_LAYER_SET_MOVE_LAYER_PRIORITY
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				LayerID;						//要设置的层ID
+	uint8_t				MoveDirection;			//移动的方向，0=上移，1=下移
+	uint8_t				none;								//未使用
+};
+
+//键盘扫描驱动管理器
+//6、打开或者关闭FN键的功能
+struct _DEF_STRUCT_KEYSCAN_FN_KEY_ENABLE
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				Enable;							//是否开启，1=开启，0=关闭
+	uint16_t			None;								//未使用
+};
+//7、开启或者禁用所有普通按键的功能，包括多媒体键
+struct _DEF_STRUCT_KEYSCAN_NORMAL_KEY_ENABLE
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				Enable;							//是否开启，1=开启，0=关闭
+	uint16_t			None;								//未使用
+};
+
+//8、开启或者关闭组合键的功能
+struct _DEF_STRUCT_KEYSCAN_COMBO_KEY_ENABLE
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				Enable;							//是否开启，1=开启，0=关闭
+	uint16_t			None;								//未使用
+};
+
+//9、开启或者关闭多击键的功能
+struct _DEF_STRUCT_KEYSCAN_NHIT_KEY_ENABLE
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				Enable;							//是否开启，1=开启，0=关闭
+	uint16_t			None;								//未使用
+};
+
+//10、开启或者关闭多功能的功能
+struct _DEF_STRUCT_KEYSCAN_NFUNC_KEY_ENABLE
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				Enable;							//是否开启，1=开启，0=关闭
+	uint16_t			None;								//未使用
+};
+
+//11、加载一个宏
+struct _DEF_STRUCT_MACRO_LOAD
+{
+	uint8_t				FuncID;							//功能ID
+	uint8_t				GroupID;						//宏的组ID
+	uint16_t			StepID;							//运行这个宏的第几步
+};
+
+//12、执行一个锁定键功能
+struct _DEF_STRUCT_FUNC_KEY_LOCK
+{
+	uint8_t				FuncID;							//功能ID
+	uint16_t			GroupID;						//要执行的组ID
+	uint8_t				None;							//未使用
+};
+
+
+//-----------------------------宏特有的指令
+//1、跳转到当前组内的任意一步
+struct _DEF_STRUCT_MACRO_FUNC_JMP_STEP
+{
+	uint8_t				FuncID;
+	uint16_t			StepID;
+	uint8_t				None;
+};
+
+//2、跳转到另一个宏的某一步执行
+struct _DEF_STRUCT_MACRO_FUNC_JMP_GROUP
+{
+	uint8_t				FuncID;
+	uint8_t				GroupID;
+	uint16_t			StepID;
+};
+
+//3、延时指定的时间（毫秒）
+struct _DEF_STRUCT_MACRO_FUNC_DELAY
+{
+	uint8_t				FuncID;
+	uint16_t			Timer_L;		//时间的低16位
+	uint8_t				Timer_H;		//时间的高8位，组合起来是24位
+};
+
+
+//4、按下一个普通的键码
+struct _DEF_STRUCT_MACRO_FUNC_NORMAL_KEY_PRESS
+{
+	uint8_t				FuncID;
+	uint8_t				KeyCode;
+	uint16_t			None;
+};
+
+//5、抬起一个普通的键码
+struct _DEF_STRUCT_MACRO_FUNC_NORMAL_KEY_UP
+{
+	uint8_t				FuncID;
+	uint8_t				KeyCode;
+	uint16_t			None;
+};
+
+//6、按下一个多媒体按键键码
+struct _DEF_STRUCT_MACRO_FUNC_MEDIA_KEY_PRESS
+{
+	uint8_t				FuncID;
+	uint16_t			MediaKeyCode;
+	uint8_t				None;
+};
+
+//7、抬起一个多媒体按键键码
+struct _DEF_STRUCT_MACRO_FUNC_MEDIA_KEY_UP
+{
+	uint8_t				FuncID;
+	uint16_t			MediaKeyCode;
+	uint8_t				None;
+};
+//END--------------------------宏特有的指令
+
+
+//13、停止一个宏的执行
+struct _DEF_STRUCT_FUNC_STOP_MACRO
+{
+	uint8_t				FuncID;
+	uint8_t				None1;
+	uint16_t			None2;
+};
+
+
+
+
+
+//联合体
+union _KEYSCAN_ONE_FUNC_MAP_UNION
+{
+	struct _KEYSCAN_ONE_NORMAL_KEY_FUNC											NormalKey;										//普通按键数据结构
+	struct _KEYSCAN_ONE_MEDIA_KEY_FUNC 											MediaKey;											//多媒体按键数据结构
+
+	//层管理器
+	struct	_DEF_STRUCT_LAYER_ENABLE											LayerEnable;									//打开或者关闭层
+	struct _DEF_STRUCT_LAYER_SET_TOP_PRIORITY									LayerSetTopPrio;							//设置某层为最高优先级
+	struct _DEF_STRUCT_LAYER_SET_MOVE_LAYER_PRIORITY							LayerMovePrio;								//某层的优先级上下移动
+
+	//键盘扫描驱动管理器
+	struct _DEF_STRUCT_KEYSCAN_FN_KEY_ENABLE									KeyScanFnKeyEnable;						//打开或者关闭FN的功能
+	struct _DEF_STRUCT_KEYSCAN_NORMAL_KEY_ENABLE								KeyScanNormalKeyEnable;				//打开或者关闭普通按键的功能
+	struct _DEF_STRUCT_KEYSCAN_COMBO_KEY_ENABLE									KeyScanComboKeyEnable;				//打开或者关闭组合键的功能
+	struct _DEF_STRUCT_KEYSCAN_NHIT_KEY_ENABLE									KeyScannHitKeyEnable;					//打开或者关闭多击键的功能
+	struct _DEF_STRUCT_KEYSCAN_NFUNC_KEY_ENABLE									KeyScannFuncKeyEnable;				//打开或者关闭多功能键的功能
+
+	//宏加载器
+	struct _DEF_STRUCT_MACRO_LOAD												MacroLoad;										//宏加载器
+
+	//锁定键
+	struct _DEF_STRUCT_FUNC_KEY_LOCK											Func_KeyLock;									//功能：锁定键
+
+	//停止一个宏的运行
+	struct _DEF_STRUCT_FUNC_STOP_MACRO											MacroStopRun;									//停止运行宏
+
+	//-------------宏特有的指令
+	struct _DEF_STRUCT_MACRO_FUNC_JMP_STEP										MacroJmpStep;									//跳转到当前组的某一步执行
+	struct _DEF_STRUCT_MACRO_FUNC_JMP_GROUP										MacroJmpGroup;								//跳转到另一组宏去执行
+	struct _DEF_STRUCT_MACRO_FUNC_DELAY											MacroDelay;										//延时指定的时间（毫秒）
+	struct _DEF_STRUCT_MACRO_FUNC_NORMAL_KEY_PRESS								MacroOutNormalKeyPress;				//按下一个普通的按键
+	struct _DEF_STRUCT_MACRO_FUNC_NORMAL_KEY_UP									MacroOutNormalKeyUp;					//抬起一个普通的按键
+	struct _DEF_STRUCT_MACRO_FUNC_MEDIA_KEY_PRESS								MacroOutMediaKeyPress;				//按下一个多媒体按键
+	struct _DEF_STRUCT_MACRO_FUNC_MEDIA_KEY_UP									MacroOutMediaKeyUp;						//抬起一个多媒体按键
+	//END----------宏特有的指令
+
+
+};
+//END----------功能关联数据结构
+
+
+//------------------------------------------层功能数据结构
+//1、触发键(FN)配置
+struct	_DEF_STRUCT_FN_KEY_CONFIG	//FN键配置
+{
+	uint8_t																		Enable; //是否启用，1=启用，0=禁用
+	uint8_t																		TrigKeyIndex;//触发键的索引
+	uint8_t																		None;		//保留未用
+};
+
+
+
+//2、组合键配置
+#define			KEYSCAN_DEF_COMBO_KEY_BUFF_SIZE									4		//每组组合键的数量
+#define			KEYSCAN_DEF_COMBO_GROUP_COUNT									32		//每层最多有32组
+
+
+struct _DEF_STRUCT_COMBO_ONE_KEY_CONFIG
+{
+	uint8_t																		Enable;//是否开启本功能
+	uint8_t																		KeyBuff[KEYSCAN_DEF_COMBO_KEY_BUFF_SIZE];//组合键的数据
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											DownFuncMap;//触发后的功能映射表
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											UpFuncMap;//触发后的功能映射表
+};
+
+struct _DEF_STRUCT_COMBO_KEYS_CONFIG //组合键配置
+{
+	uint8_t																		Enable;//是否启用，1=启用，0=禁用
+	struct _DEF_STRUCT_COMBO_ONE_KEY_CONFIG										TrigConfig[KEYSCAN_DEF_COMBO_GROUP_COUNT]; //组合键键码配置
+};
+
+
+
+
+
+//3、多击键配置
+#define		_DEF_DEFINE_NHIT_MAX_EVENT_COUNT									132			//一个触发层最多可设置128个触发事件
+//每个层最多可注册N个触发事件，每个键可以注册多个不同的触发事件，扫描顺序从0~N，最先匹配的，被触发，其后的被忽略
+struct _DEF_STRUCT_NHIT_ONE_EVENT_CONFIG //多击键每个事件的触发配置
+{
+	uint8_t																		TrigCount;	//触发次数为0，表示不启用这个功能
+	uint8_t																		TrigKeyIndex; //在哪个键上注册
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											TrigFunc;		//触发后要执行的功能
+};
+
+struct _DEF_STRUCT_NHIT_CONFIG
+{
+	uint8_t																		Enable;			//是否启用，1=启用，0=禁用
+	struct _DEF_STRUCT_NHIT_ONE_EVENT_CONFIG									TrigConfig[_DEF_DEFINE_NHIT_MAX_EVENT_COUNT];
+};
+
+
+
+//4、多功能键配置（二合一）键
+struct _DEF_STRUCT_NFUNC_ONE_KEY_CONFIG
+{
+	uint8_t																		Enable;							//是否启用，1=启用，0=禁用
+	uint8_t																		KeyIndex;						//在哪个键上注册
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											ClickTrigFuncMap;		//单击触发执行的功能
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											LongPressFuncMap;		//长按触发执行的功能
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											LongPressUpFuncMap;	//长按抬起后执行的功能
+};
+
+#define		_DEF_DEFINE_NFUNC_MAX_COUNT											32				//多功能键每个层最多只能注册32个
+//所有按键的处理
+struct _DEF_STRUCT_NFUNC_CONFIG
+{
+	uint8_t																		Enable; //是否启用，1=启用，0=禁用
+	uint16_t																	LongPressTime;	//多功能键长按的识别时间
+	struct _DEF_STRUCT_NFUNC_ONE_KEY_CONFIG										KeyConfig[_DEF_DEFINE_NFUNC_MAX_COUNT];//32个按键
+};
+
+
+//5、普通键位映射表
+#define		KEYSCAN_DEF_PHY_KEY_COUNT											65		//一共有92个按键
+struct _DEF_STRUCT_NORMAL_KEY
+{
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											KeyConfig[KEYSCAN_DEF_PHY_KEY_COUNT];//一共92个按键
+};
+
+
+
+//-------------------层配置
+
+#define		_DEF_DEFINE_TRIG_LAYER_COUNT										16							//最多有多少个层
+
+//一个层的配置
+struct _DEF_STRUCT_ONE_TRIG_LAYER_CONFIG
+{
+	struct _DEF_STRUCT_FN_KEY_CONFIG											TrigKeyConfig;	//触发键配置(每层一个，独立的)
+	struct _DEF_STRUCT_COMBO_KEYS_CONFIG 										ComboKeyConfig;	//组合键配置(每层独立，但与按键本身的功能不冲突)
+	struct _DEF_STRUCT_NHIT_CONFIG												nHitKeyConfig;	//多击键配置(独立的，不受别的配置影响)
+	struct _DEF_STRUCT_NFUNC_CONFIG												nFuncKeyConfig;	//多功能键配置(独立的，不受别的配置影响)
+	struct _DEF_STRUCT_NORMAL_KEY												NormalKeyConfig;//普通按键的配置(如果配置了别的功能，则普通按键的功能会被覆盖)
+};
+
+//--------------------功能：锁定键
+#define		_DEF_DEFINE_LOCK_KEY_MAX_GROUP										127		//锁定键最多可以定义127组
+#define		_DEF_DEFINE_LOCK_KEY_MAX_KEYS										8			//每组8个
+
+struct _DEF_STRUCT_LOCK_KEYS_ONE
+{
+	uint16_t																	KeyCode[_DEF_DEFINE_LOCK_KEY_MAX_KEYS];//最高位1=多媒体键，0=普通按键
+};
+struct _DEF_STRUCT_LOCK_KEYS
+{
+	struct _DEF_STRUCT_LOCK_KEYS_ONE											Group[_DEF_DEFINE_LOCK_KEY_MAX_GROUP];//共计占用8*2*120=2040字节
+};
+
+
+//-------------------功能：宏
+#define		_DEF_DEFINE_MACRO_MAX_GROUP											100		//宏数据，最多100组
+#define		_DEF_DEFINE_MACRO_GROUP_MAX_STEP									510		//每个宏最多可有510步
+struct	_DEF_STRUCT_MACRO_ONE_GROUP
+{
+	union _KEYSCAN_ONE_FUNC_MAP_UNION											MacroStep[_DEF_DEFINE_MACRO_GROUP_MAX_STEP];//宏的数据
+};
+
+
+
+//系统基本配置
+struct _DEF_STRUCT_KEYSCAN_CONFIG
+{
+	uint8_t																		KeyDebounceTime;//按键的消抖时间，2ms的倍数
+	uint8_t																		KeyUp_TimeOut;	//按键抬起这个时间后，则会自动清理按下次数计数器
+};
+
+//层的管理器
+struct _DEF_STRUCT_TRIG_LAYER_MANAGER
+{
+	uint8_t																		LayerEnable[_DEF_DEFINE_TRIG_LAYER_COUNT];//层的开关
+	uint8_t																		LayerPriority[_DEF_DEFINE_TRIG_LAYER_COUNT];//层的扫描顺序
+};
+
+struct _DEF_STRUCT_DEVICE_SYS_CONFIG
+{
+	struct _DEF_STRUCT_KEYSCAN_CONFIG										KeyScanConfig;		//按键扫描配置
+	struct _DEF_STRUCT_TRIG_LAYER_MANAGER									LayerManager;			//层管理器
+};
+
+
+
+
+#define		LED_BL_REMAP_GRAM_X																	18				//按键背光的重映射逻辑列
+#define		LED_BL_REMAP_GRAM_Y																	6					//按键背光的重映射逻辑行
+
+#define		LED_AL_REMAP_GRAM_X																	20				//氛围灯的数量
+#define		LED_LOGO_REMAP_GRAM_X																2					//状态指示灯的数量
+
+//硬件图形缓冲区
+#define LED_PHY_BUFF_X				8				//硬件图形缓冲区的逻辑列
+#define LED_PHY_BUFF_Y				16			//硬件图形缓冲区的逻辑行
+
+
+//设置三个通道的亮度值
+struct LED_CONFIG_COLOR_LEVEL
+{
+	uint8_t																		R;//三个通道的亮度值
+	uint8_t																		G;//三个通道的亮度值
+	uint8_t																		B;//三个通道的亮度值
+};
+
+//LED状态指示灯的灯效
+struct	LED_STRUCT_STATUS_CONFIG
+{
+	struct
+	{
+		struct LED_CONFIG_COLOR_LEVEL	CapsColor;
+		struct LED_CONFIG_COLOR_LEVEL	ScrollColor;
+		uint8_t							Mode; //颜色模式：0=随机颜色，
+											//1=固定颜色，2=七彩渐变，3=随机颜色爆闪
+	}ColorConfig;
+	uint8_t								WorkMode;	//工作模式，0=不启用；
+													//1=启动点亮，禁用熄灭，不参与灯效；
+													//2=启动点亮，禁用熄灭，但参与灯效；
+};
+
+//ESC灯效的配置
+struct	LED_STRUCT_ESC_LIG_CONFIG
+{
+	struct LED_CONFIG_COLOR_LEVEL		Color;		//固定的颜色
+	uint8_t								WorkMode;	//工作模式：0=不启用
+										//1=七彩渐变
+										//2=呼吸灯
+										//3=渐变
+										//4=爆闪
+};
+
+//LOGO灯效配置
+struct LED_STRUCT_LOGO_LIG_CONFIG
+{
+	struct LED_CONFIG_COLOR_LEVEL		Color;		//固定的颜色
+	uint8_t								WorkMode;	//工作模式：0=不启用
+										//1=七彩渐变
+										//2=呼吸灯
+										//3=渐变
+										//4=随即颜色爆闪
+										//5=固定颜色
+};
+
+//背光自定义颜色
+#define	_DEF_LED_CUSTOM_EFFECT_MAX_GROUP			1170	//最多只能定义1170组
+#define _DEF_LED_CUSTOM_EFFECT_MAX_TITLE_SIZE		24		//这个灯效的标题，最多12个汉字，24个字符
+#define LED_BL_REMAP_GRAM_X							18
+#define LED_BL_REMAP_GRAM_Y                         6
+
+struct LED_GRAM_ONE_RGB_POINT //一个全彩像素点的值8bit
+{
+	uint8_t		R;
+	uint8_t		G;
+	uint8_t		B;
+};
+
+struct LED_CUSTOM_BL_EFFECT_STRUCT	//使用内存=18*6=108*3=324+2+24=350 byte每个灯效
+{
+	struct LED_GRAM_ONE_RGB_POINT 		rgb[LED_BL_REMAP_GRAM_X][LED_BL_REMAP_GRAM_Y];//背光的颜色
+	uint8_t								Title[_DEF_LED_CUSTOM_EFFECT_MAX_TITLE_SIZE];
+	uint16_t							WorkMode;//展示模式
+};
+#define	LED_CUSTOM_WORK_MODE_MAX_GROUP			16		//最多可定义多少个组
+struct	LED_CUSTOM_BL_WORK_MODE_STRUCT
+{
+	struct //单图模式
+	{
+		uint8_t							EffectMode;			//灯效模式
+		uint16_t						PicIndex;			//图片索引
+	}SMode;
+	struct //多图模式
+	{
+		uint16_t						StartIndex;			//开始播放的索引
+		uint16_t						EndIndex;			//结束播放的索引
+		uint16_t						Time;				//时间
+	}MMode;
+	uint8_t 							WorkMode;
+	uint8_t								Title[_DEF_LED_CUSTOM_EFFECT_MAX_TITLE_SIZE];//这个工作模式的标题
+};
+
+#pragma pack()           //1字节对齐结束
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-------------------------------------------键盘功能映射定义----------------------------------------------------------------------------
+//普通按键功能映射，功能码定义
+#define			_DEF_DEFINE_KEY_MAP_NONE										0		//无功能，透明的，会被管理器忽略
+#define			_DEF_DEFINE_KEY_MAP_DISABLE										1		//本功能被禁用，管理器碰到这个指令则停止扫描下一层
+#define			_DEF_DEFINE_KEY_MAP_NORMAL_KEY									2		//普通的按键
+#define			_DEF_DEFINE_KEY_MAP_MEDIA_KEY									3		//这是一个多媒体按键
+
+
+
+
+
+
+
+
+
+
+//要执行的功能的所有功能码定义
+#define			_DEF_DEFINE_FUNC_NONE											0		//保留未用
+#define			_DEF_DEFINE_FUNC_NONE1											1		//保留未用
+#define			_DEF_DEFINE_FUNC_NORMAL_KEY										2		//作为普通的按键处理
+#define			_DEF_DEFINE_FUNC_MEDIA_KEY										3		//作为一个多媒体按键处理
+
+//层管理器
+#define			_DEF_DEFINE_FUNC_LAYER_ENABLE									4		//打开或者关闭某个层
+#define			_DEF_DEFINE_FUNC_LAYER_SET_TOP_PRIO								5		//把某层设置为最高优先级
+#define			_DEF_DEFINE_FUNC_LAYER_MOVE_PRIO								6		//移动某层的优先级
+
+//键盘扫描驱动管理器
+#define			_DEF_DEFINE_FUNC_KEYSCAN_FN_KEY_ENABLE							7		//开启或者关闭FN的功能
+#define			_DEF_DEFINE_FUNC_KEYSCAN_NORMAL_KEY_ENABLE						8		//开启或者关闭所有普通的按键
+#define			_DEF_DEFINE_FUNC_KEYSCAN_COMBO_KEY_ENABLE						9		//开启或者关闭组合键的功能
+#define			_DEF_DEFINE_FUNC_KEYSCAN_NHIT_KEY_ENABLE						10		//开启或者关闭多击键的功能
+#define			_DEF_DEFINE_FUNC_KEYSCAN_NFUNC_KEY_ENABLE						11		//开启或者关闭多功能键的功能
+
+//宏加载器
+#define			_DEF_DEFINE_FUNC_MACRO_LOAD										12     	//加载一个宏
+
+//锁定键功能
+#define			_DEF_DEFINE_FUNC_KEY_LOCK										13     	//执行一个锁定键功能
+
+//宏使用的特有指令
+#define			_DEF_DEFINE_MACRO_CURR_GROUP_JMP								15     	//在当前脚本内跳转
+#define			_DEF_DEFINE_MACRO_JMP_GROUP										16     	//跳转到另外的一个宏并执行
+#define			_DEF_DEFINE_MACRO_DELAY											17     	//延时指定的时间
+
+#define			_DEF_DEFINE_MACRO_OUT_NORMAL_KEY_PRESS							18     	//输出一个普通按键的键码，但只输出按下事件
+#define			_DEF_DEFINE_MACRO_OUT_NORMAL_KEY_UP								19     	//输出一个普通按键的键码，但只输出抬起事件
+#define			_DEF_DEFINE_MACRO_OUT_MEDIA_KEY_PRESS							20     	//输出一个多媒体的键码，但只输出按下事件
+#define			_DEF_DEFINE_MACRO_OUT_MEDIA_KEY_UP								21     	//输出一个多媒体的键码，但只输出抬起事件
+//宏特有的指令结束，其他指令均为共用
+
+#define			_DEF_DEFINE_MACRO_STOP_MACRO									22     	//停止当前宏的执行
+
+//背光控制
+#define			_DEF_DEFINE_BKL_CTL_EFF_INDEX_UP								23		//上一个灯效
+#define			_DEF_DEFINE_BKL_CTL_EFF_INDEX_DOWN								24		//下一个灯效
+#define			_DEF_DEFINE_BKL_CTL_EFF_SPEED_UP								25		//增加速度
+#define			_DEF_DEFINE_BKL_CTL_EFF_SPEED_DOWN								26		//降低速度
+
+#define			_DEF_DEFINE_BKL_BKL_EFF_INDEX_UP								27		//底灯的上一个灯效
+#define			_DEF_DEFINE_BKL_BKL_EFF_INDEX_DOWN								28		//底灯的下一个灯效
+
+
+
+
+
+
+
+
+
+
+
+
+//功能编辑器参数
+#define			_DEF_DEFINE_FUNC_EDIT_ROUTINE_PAGE								0		//常规按键编辑
+#define			_DEF_DEFINE_FUNC_EDIT_COMBOKEY_PAGE								1		//组合键编辑器
+#define			_DEF_DEFINE_FUNC_EDIT_NHITKEY_PAGE								2		//连击键编辑器
+#define			_DEF_DEFINE_FUNC_EDIT_NFUNC_PAGE								3		//多功能编辑器
+#define			_DEF_DEFINE_FUNC_EDIT_KEYLOCK_PAGE								4		//锁定键编辑器
+#define			_DEF_DEFINE_FUNC_EDIT_MACRO_PAGE								5		//宏编辑器
+
+//编辑第几个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA1										1		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA2										2		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA3										3		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA4										4		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA5										5		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA6										6		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA7										7		//编辑第一个功能
+#define			_DEF_DEFINE_FUNC_EDIT_PARA8										8		//编辑第一个功能
+
+//---------------------------------------------------------------------------
+class TMainForm : public TForm
+{
+__published:	// IDE-managed Components
+	TPageControl *PageControl1;
+	TTabSheet *TabSheet1;
+	TTabSheet *TabSheet3;
+	TTabSheet *TabSheet4;
+	TGroupBox *GroupBox3;
+	TGroupBox *GroupBox4;
+	TMemo *Memo_Msg;
+	TButton *Button_AppendSet;
+	TButton *Button_DefaultSet;
+	TTimer *Timer1;
+	TProgressBar *ProgressBar1;
+	TGroupBox *GroupBox1;
+	TButton *Button_Start_KBFw;
+	TButton *Button_SelectFwFile;
+	TButton *Button_Flash_Fw;
+	TButton *Button_SwitchToBootLoader;
+	TLabel *Label1;
+	TComboBox *CB_xiaodou_Time;
+	TTabSheet *TabSheet2;
+	TLabel *Label2;
+	TComboBox *CB_nHit_TimeOut;
+	TLabel *Label3;
+	TPanel *Panel1;
+	TImage *Image1;
+	TGroupBox *GroupBox2;
+	TLabel *Label4;
+	TButton *Button_UpLayerData;
+	TButton *Button2;
+	TComboBox *ComboBox_LayerSelect;
+	TButton *Button3;
+	TButton *Button4;
+	TLabel *Label_ComboKeyCheckedCount;
+	TLabel *Label_nHitEnableCount;
+	TLabel *Label_nFuncEnableGroup;
+	TPageControl *PageControl2;
+	TTabSheet *TabSheet6;
+	TTabSheet *TabSheet7;
+	TTabSheet *TabSheet8;
+	TTabSheet *TabSheet9;
+	TCheckBox *CheckBox_LayerFnEnable;
+	TListView *LV_RoutineEdit;
+	TButton *Button_ReadDevice_LayerData;
+	TListView *LV_ComboKeyEdit;
+	TGroupBox *GroupBox8;
+	TListView *LV_ComboKey_KeyEdit;
+	TCheckBox *CheckBox_ComboKeyEnable;
+	TListView *LV_nHitKeyEdit;
+	TCheckBox *CheckBox_nHitKeyEnable;
+	TPopupMenu *PopMenu_RoutineEdit;
+	TMenuItem *PopMenu_RoutineEdit_SetNone;
+	TMenuItem *PopMenu_RoutineEdit_Disable;
+	TMenuItem *N3;
+	TMenuItem *PopMenu_RoutineEdit_ClearAllSet;
+	TCheckBox *CheckBox_nFunc_Enable;
+	TPopupMenu *PopupMenu_ComboEdit;
+	TMenuItem *PopMenu_ComboEdit_ClearDownSet;
+	TMenuItem *PopMenu_ComboEdit_ClearUpSet;
+	TMenuItem *N4;
+	TMenuItem *PopMenu_ComboEdit_ClearAllSet;
+	TComboBox *ComboBox_ComboEdit_KeyEdit_KeySelect;
+	TPopupMenu *PopupMenu_ComboEdit_KeyEdit;
+	TMenuItem *PopupMenu_ComboEdit_KeyEdit_ClearKey;
+	TMenuItem *PopupMenu_ComboEdit_KeyEdit_ClearAll;
+	TComboBox *ComboBox_nHitKeyEdit_KeySelect;
+	TComboBox *ComboBox_nHitKeyEdit_CountSelect;
+	TPopupMenu *PopupMenu_nHitKeyEdit;
+	TMenuItem *PopMenu_nHitKeyEdit_ClearSelectSet;
+	TMenuItem *PopMenu_nHitKeyEdit_ClearAllSet;
+	TListView *LV_nFuncEdit;
+	TComboBox *ComboBox_nFuncEdit_KeyCodeSelect;
+	TComboBox *ComboBox_nFuncEdit_TimeSelect;
+	TLabel *Label5;
+	TPopupMenu *PopupMenu_nFuncEdit;
+	TMenuItem *PopMenu_nFuncEdit_ClearClickSet;
+	TMenuItem *PopMenu_nFuncEdit_ClearLongPressSet;
+	TMenuItem *PopMenu_nFuncEdit_ClearLongPressUpSet;
+	TMenuItem *N6;
+	TMenuItem *PopMenu_nFuncEdit_DisableAllGroup;
+	TMenuItem *PopMenu_nFuncEdit_ClearAllSet;
+	TPageControl *PageControl3;
+	TTabSheet *TabSheet10;
+	TTabSheet *TabSheet11;
+	TPanel *Panel2;
+	TImage *Image2;
+	TGroupBox *GroupBox5;
+	TListView *LV_KeyLockEdit;
+	TButton *Button_DownLoad_KeyLockData;
+	TButton *Button_UpLoad_KeyLockData;
+	TPopupMenu *PopupMenu_KeyLockEdit;
+	TMenuItem *PopMenu_KeyLockEdit_ClearCol;
+	TMenuItem *PopMenu_KeyLockEdit_ClearGroup;
+	TMenuItem *N5;
+	TMenuItem *PopMenu_KeyLockEdit_ClearSelectGroup;
+	TMenuItem *PopMenu_KeyLockEdit_ClearAll;
+	TButton *Button_KeyLockData_SaveToFile;
+	TButton *Button_KeyLockData_OpenFile;
+	TGroupBox *GroupBox6;
+	TLabel *Label6;
+	TComboBox *ComboBox_MacroEdit_GroupSelect;
+	TButton *Button_MacroEdit_DownLoadData;
+	TButton *Button_Macro_UpLoad;
+	TButton *Button6;
+	TButton *Button7;
+	TListView *LV_MacroEdit;
+	TPopupMenu *PopupMenu_MacroEdit;
+	TMenuItem *PopMenu_Macro_ClearSelectSet;
+	TMenuItem *PopMenu_Macro_ClearALLSet;
+	TPageControl *PageControl4;
+	TTabSheet *TabSheet12;
+	TGroupBox *GroupBox9;
+	TLabel *Label7;
+	TLabel *Label8;
+	TLabel *Label9;
+	TTrackBar *TrackBar_R;
+	TTrackBar *TrackBar_G;
+	TTrackBar *TrackBar_B;
+	TButton *Button_ColorLevel_Append;
+	TTabSheet *TabSheet13;
+	TCheckListBox *TChkLst_LayerPrioSet;
+	TButton *Button_LayerPrioSet_Append;
+	TButton *Button_LayerPrioSet_MoveDown;
+	TButton *Button_LayerPrioSet_MoveUp;
+	TTabSheet *TabSheet5;
+	TGroupBox *GroupBox7;
+	TTrackBar *TrackBar_Bkl_EffectIndex;
+	TLabel *Label10;
+	TTrackBar *TrackBar_Bkl_EffectSpeed;
+	TLabel *Label11;
+	TButton *Button_Bkl_Effect_UP;
+	TButton *Button_Bkl_Effect_DOWN;
+	TButton *Button_Bkl_Effect_Index_APPEND;
+	TButton *Button_Bkl_Effect_Speed_APPEND;
+	TTrackBar *TrackBar_BottomLig_EffectIndex;
+	TLabel *Label12;
+	TButton *Button_BottomLig_Effect_Index_APPEND;
+	TButton *Button_BottomLig_Effect_Index_Up;
+	TButton *Button_BottomLig_Effect_Index_Down;
+	TGroupBox *GroupBox10;
+	TComboBox *ComboBox_led_status_WorkModeSelect;
+	TComboBox *ComboBox_led_status_EffectMode;
+	TGroupBox *GroupBox11;
+	TLabel *Label13;
+	TLabel *Label14;
+	TButton *Button_LedStatus_Append;
+	TLabel *Label15;
+	TLabel *Label16;
+	TLabel *B;
+	TEdit *Edit_CAPS_R;
+	TEdit *Edit_CAPS_G;
+	TEdit *Edit_CAPS_B;
+	TColorDialog *ColorDialog1;
+	TImage *Image_CAPS;
+	TImage *Image_SCROLL;
+	TLabel *Label17;
+	TLabel *Label18;
+	TLabel *Label19;
+	TEdit *Edit_SCROLL_B;
+	TEdit *Edit_SCROLL_G;
+	TEdit *Edit_SCROLL_R;
+	TGroupBox *GroupBox12;
+	TLabel *Label20;
+	TTrackBar *TrackBar_Esc_Eff_Index;
+	TButton *Button_Esc_Effect_Append;
+	TButton *Button_Esc_Eff_Up;
+	TButton *Button_Esc_Eff_Down;
+	TImage *Image_Esc_Color;
+	TLabel *Label21;
+	TEdit *Edit_Esc_Color_B;
+	TEdit *Edit_Esc_Color_G;
+	TEdit *Edit_Esc_Color_R;
+	TLabel *Label22;
+	TLabel *Label23;
+	TLabel *Label24;
+	TLabel *Label_Times;
+	TButton *Button1;
+	TGroupBox *GroupBox13;
+	TGroupBox *GroupBox14;
+	TGroupBox *GroupBox15;
+	TImage *Image3;
+	TPanel *Pan0;
+	TPanel *Pan1;
+	TPanel *Pan2;
+	TPanel *Pan3;
+	TPanel *Pan4;
+	TPanel *Pan5;
+	TPanel *Pan6;
+	TPanel *Pan7;
+	TPanel *Pan8;
+	TPanel *Pan9;
+	TPanel *Pan10;
+	TPanel *Pan11;
+	TPanel *Pan12;
+	TPanel *Pan13;
+	TPanel *Pan14;
+	TPanel *Pan15;
+	TPanel *Pan16;
+	TPanel *Pan17;
+	TPanel *Pan18;
+	TPanel *Pan19;
+	TPanel *Pan20;
+	TPanel *Pan21;
+	TPanel *Pan22;
+	TPanel *Pan23;
+	TPanel *Pan24;
+	TPanel *Pan25;
+	TPanel *Pan26;
+	TPanel *Pan27;
+	TPanel *Pan28;
+	TPanel *Pan29;
+	TPanel *Pan30;
+	TPanel *Pan31;
+	TPanel *Pan32;
+	TPanel *Pan33;
+	TPanel *Pan34;
+	TPanel *Pan35;
+	TPanel *Pan36;
+	TPanel *Pan37;
+	TPanel *Pan38;
+	TPanel *Pan39;
+	TPanel *Pan40;
+	TPanel *Pan41;
+	TPanel *Pan42;
+	TPanel *Pan43;
+	TPanel *Pan44;
+	TPanel *Pan45;
+	TPanel *Pan46;
+	TPanel *Pan47;
+	TPanel *Pan48;
+	TPanel *Pan49;
+	TPanel *Pan50;
+	TPanel *Pan51;
+	TPanel *Pan52;
+	TPanel *Pan53;
+	TPanel *Pan54;
+	TPanel *Pan55;
+	TPanel *Pan56;
+	TPanel *Pan57;
+	TPanel *Pan58;
+	TPanel *Pan59;
+	TPanel *Pan60;
+	TPanel *Pan61;
+	TPanel *Pan62;
+	TPanel *Pan63;
+	TPanel *Pan64;
+	TPanel *Pan65;
+	TPanel *Pan66;
+	TPanel *Pan67;
+	TPanel *Pan68;
+	TPanel *Pan69;
+	TPanel *Pan70;
+	TPanel *Pan71;
+	TPanel *Pan72;
+	TPanel *Pan73;
+	TPanel *Pan74;
+	TPanel *Pan75;
+	TPanel *Pan76;
+	TPanel *Pan77;
+	TPanel *Pan78;
+	TPanel *Pan79;
+	TPanel *Pan80;
+	TPanel *Pan81;
+	TPanel *Pan82;
+	TPanel *Pan83;
+	TPanel *Pan84;
+	TPanel *Pan85;
+	TPanel *Pan86;
+	TPanel *Pan87;
+	TPanel *Pan88;
+	TPanel *Pan89;
+	TPanel *Pan90;
+	TPanel *Pan91;
+	TLabel *Label25;
+	TComboBox *ComboBox_Custom_ColorGroupSelect;
+	TButton *Button_Custom_Color_DownLoader;
+	TButton *Button_Custom_Color_UpLoader;
+	TLabel *Label26;
+	TEdit *Edit_Custom_Color_Title;
+	TButton *Button_Custom_Color_LoadBmp;
+	TButton *Button_Custom_Color_Rand;
+	TButton *Button_Custom_Color_SelectColor;
+	TImage *Image_Custom_Colorbmp;
+	TLabel *Label27;
+	TComboBox *ComboBox_Custom_WorkModeGroupSelect;
+	TButton *Button_Custom_WorkMode_DownLoad;
+	TButton *Button_Custom_WorkMode_upLoad;
+	TRadioButton *RadioButton_Custom_S_Mode;
+	TRadioButton *RadioButton_Custom_M_Mode;
+	TGroupBox *GroupBox16;
+	TGroupBox *GroupBox17;
+	TRadioButton *RadioButton_StaticMode;
+	TRadioButton *RadioButton_HuxiMode;
+	TRadioButton *RadioButton_Left_to_Right;
+	TRadioButton *RadioButton_Right_to_Left;
+	TComboBox *ComboBox_Custom_WorkModeStaticGroupSelect;
+	TRadioButton *RadioButton_Flash_Mode;
+	TLabel *Label28;
+	TComboBox *ComboBox_Custom_WorkModeStartSelect;
+	TLabel *Label29;
+	TComboBox *ComboBox_Custom_WorkModeEndSelect;
+	TLabel *Label30;
+	TComboBox *ComboBox_Custom_WorkModeTimeSelect;
+	TLabel *Label31;
+	TEdit *Edit_Custom_WorkModeTitle;
+	TGroupBox *GroupBox18;
+	TLabel *Label32;
+	TTrackBar *TrackBar_LOGO_EFF_Index;
+	TButton *Button_LOGO_Eff_Append;
+	TImage *Image_LOGO_Color;
+	TLabel *Label33;
+	TLabel *Label34;
+	TLabel *Label35;
+	TEdit *Edit_LOGO_B;
+	TEdit *Edit_LOGO_G;
+	TEdit *Edit_LOGO_R;
+	TButton *Button_LOGO_Eff_Up;
+	TButton *Button_LOGO_Eff_Down;
+	void __fastcall Timer1Timer(TObject *Sender);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
+	void __fastcall Button_SelectFwFileClick(TObject *Sender);
+	void __fastcall Button_Flash_FwClick(TObject *Sender);
+	void __fastcall Button_SwitchToBootLoaderClick(TObject *Sender);
+	void __fastcall Button_Start_KBFwClick(TObject *Sender);
+	void __fastcall Button_DefaultSetClick(TObject *Sender);
+	void __fastcall Button_AppendSetClick(TObject *Sender);
+	void __fastcall Button3Click(TObject *Sender);
+	void __fastcall Button4Click(TObject *Sender);
+	void __fastcall Button2Click(TObject *Sender);
+	void __fastcall Button_UpLayerDataClick(TObject *Sender);
+	void __fastcall Button_ReadDevice_LayerDataClick(TObject *Sender);
+	void __fastcall ComboBox_LayerSelectSelect(TObject *Sender);
+	void __fastcall PopMenu_RoutineEdit_SetNoneClick(TObject *Sender);
+	void __fastcall PopMenu_RoutineEdit_DisableClick(TObject *Sender);
+	void __fastcall CheckBox_LayerFnEnableClick(TObject *Sender);
+	void __fastcall PopMenu_RoutineEdit_ClearAllSetClick(TObject *Sender);
+	void __fastcall LV_RoutineEditDblClick(TObject *Sender);
+	void __fastcall CheckBox_ComboKeyEnableClick(TObject *Sender);
+	void __fastcall CheckBox_nHitKeyEnableClick(TObject *Sender);
+	void __fastcall CheckBox_nFunc_EnableClick(TObject *Sender);
+	void __fastcall LV_ComboKeyEditDblClick(TObject *Sender);
+	void __fastcall LV_ComboKeyEditClick(TObject *Sender);
+	void __fastcall LV_ComboKeyEditItemChecked(TObject *Sender, TListItem *Item);
+	void __fastcall PopMenu_ComboEdit_ClearDownSetClick(TObject *Sender);
+	void __fastcall PopMenu_ComboEdit_ClearUpSetClick(TObject *Sender);
+	void __fastcall PopMenu_ComboEdit_ClearAllSetClick(TObject *Sender);
+	void __fastcall LV_ComboKey_KeyEditDblClick(TObject *Sender);
+	void __fastcall LV_ComboKey_KeyEditClick(TObject *Sender);
+	void __fastcall ComboBox_ComboEdit_KeyEdit_KeySelectSelect(TObject *Sender);
+	void __fastcall LV_ComboKey_KeyEditMouseDown(TObject *Sender, TMouseButton Button,
+          TShiftState Shift, int X, int Y);
+	void __fastcall PopupMenu_ComboEdit_KeyEdit_ClearKeyClick(TObject *Sender);
+	void __fastcall PopupMenu_ComboEdit_KeyEdit_ClearAllClick(TObject *Sender);
+	void __fastcall LV_nHitKeyEditDblClick(TObject *Sender);
+	void __fastcall LV_nHitKeyEditClick(TObject *Sender);
+	void __fastcall ComboBox_nHitKeyEdit_KeySelectSelect(TObject *Sender);
+	void __fastcall ComboBox_nHitKeyEdit_CountSelectSelect(TObject *Sender);
+	void __fastcall PopMenu_nHitKeyEdit_ClearSelectSetClick(TObject *Sender);
+	void __fastcall PopMenu_nHitKeyEdit_ClearAllSetClick(TObject *Sender);
+	void __fastcall LV_nFuncEditDblClick(TObject *Sender);
+	void __fastcall LV_nFuncEditClick(TObject *Sender);
+	void __fastcall ComboBox_nFuncEdit_KeyCodeSelectSelect(TObject *Sender);
+	void __fastcall LV_nFuncEditItemChecked(TObject *Sender, TListItem *Item);
+	void __fastcall ComboBox_nFuncEdit_TimeSelectSelect(TObject *Sender);
+	void __fastcall PopMenu_nFuncEdit_ClearClickSetClick(TObject *Sender);
+	void __fastcall PopMenu_nFuncEdit_ClearLongPressSetClick(TObject *Sender);
+	void __fastcall PopMenu_nFuncEdit_ClearLongPressUpSetClick(TObject *Sender);
+	void __fastcall PopMenu_nFuncEdit_DisableAllGroupClick(TObject *Sender);
+	void __fastcall PopMenu_nFuncEdit_ClearAllSetClick(TObject *Sender);
+	void __fastcall LV_KeyLockEditDblClick(TObject *Sender);
+	void __fastcall Button_DownLoad_KeyLockDataClick(TObject *Sender);
+	void __fastcall PageControl3Change(TObject *Sender);
+	void __fastcall LV_KeyLockEditMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
+          int X, int Y);
+	void __fastcall PopMenu_KeyLockEdit_ClearColClick(TObject *Sender);
+	void __fastcall PopMenu_KeyLockEdit_ClearGroupClick(TObject *Sender);
+	void __fastcall PopMenu_KeyLockEdit_ClearSelectGroupClick(TObject *Sender);
+	void __fastcall PopMenu_KeyLockEdit_ClearAllClick(TObject *Sender);
+	void __fastcall Button_UpLoad_KeyLockDataClick(TObject *Sender);
+	void __fastcall Button_KeyLockData_SaveToFileClick(TObject *Sender);
+	void __fastcall Button_KeyLockData_OpenFileClick(TObject *Sender);
+	void __fastcall Button_MacroEdit_DownLoadDataClick(TObject *Sender);
+	void __fastcall ComboBox_MacroEdit_GroupSelectSelect(TObject *Sender);
+	void __fastcall LV_MacroEditDblClick(TObject *Sender);
+	void __fastcall Button_Macro_UpLoadClick(TObject *Sender);
+	void __fastcall Button6Click(TObject *Sender);
+	void __fastcall Button7Click(TObject *Sender);
+	void __fastcall PopMenu_Macro_ClearSelectSetClick(TObject *Sender);
+	void __fastcall PopMenu_Macro_ClearALLSetClick(TObject *Sender);
+	void __fastcall CB_xiaodou_TimeSelect(TObject *Sender);
+	void __fastcall CB_nHit_TimeOutSelect(TObject *Sender);
+	void __fastcall TChkLst_LayerPrioSetDrawItem(TWinControl *Control, int Index, TRect &Rect,
+		  TOwnerDrawState State);
+	void __fastcall Button_LayerPrioSet_MoveUpClick(TObject *Sender);
+	void __fastcall Button_LayerPrioSet_MoveDownClick(TObject *Sender);
+	void __fastcall TChkLst_LayerPrioSetClickCheck(TObject *Sender);
+	void __fastcall Button_LayerPrioSet_AppendClick(TObject *Sender);
+	void __fastcall Button_ColorLevel_AppendClick(TObject *Sender);
+	void __fastcall Button_Bkl_Effect_UPClick(TObject *Sender);
+	void __fastcall Button_Bkl_Effect_DOWNClick(TObject *Sender);
+	void __fastcall Button_Bkl_Effect_Index_APPENDClick(TObject *Sender);
+	void __fastcall Button_Bkl_Effect_Speed_APPENDClick(TObject *Sender);
+	void __fastcall Button_BottomLig_Effect_Index_APPENDClick(TObject *Sender);
+	void __fastcall Button_BottomLig_Effect_Index_UpClick(TObject *Sender);
+	void __fastcall Button_BottomLig_Effect_Index_DownClick(TObject *Sender);
+	void __fastcall Image_CAPSClick(TObject *Sender);
+	void __fastcall Image_SCROLLClick(TObject *Sender);
+	void __fastcall Edit_CAPS_RKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_CAPS_GKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_CAPS_BKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_SCROLL_RKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_SCROLL_GKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_SCROLL_BKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Button_LedStatus_AppendClick(TObject *Sender);
+	void __fastcall Edit_CAPS_RChange(TObject *Sender);
+	void __fastcall Edit_CAPS_GChange(TObject *Sender);
+	void __fastcall Edit_CAPS_BChange(TObject *Sender);
+	void __fastcall Edit_SCROLL_RChange(TObject *Sender);
+	void __fastcall Edit_SCROLL_GChange(TObject *Sender);
+	void __fastcall Edit_SCROLL_BChange(TObject *Sender);
+	void __fastcall Button_Esc_Eff_UpClick(TObject *Sender);
+	void __fastcall Button_Esc_Eff_DownClick(TObject *Sender);
+	void __fastcall Edit_Esc_Color_RKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_Esc_Color_GKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_Esc_Color_BKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_Esc_Color_RChange(TObject *Sender);
+	void __fastcall Edit_Esc_Color_GChange(TObject *Sender);
+	void __fastcall Edit_Esc_Color_BChange(TObject *Sender);
+	void __fastcall Image_Esc_ColorClick(TObject *Sender);
+	void __fastcall Button_Esc_Effect_AppendClick(TObject *Sender);
+	void __fastcall Button1Click(TObject *Sender);
+	void __fastcall Pan0Click(TObject *Sender);
+	void __fastcall Pan1Click(TObject *Sender);
+	void __fastcall Pan2Click(TObject *Sender);
+	void __fastcall Pan3Click(TObject *Sender);
+	void __fastcall Pan4Click(TObject *Sender);
+	void __fastcall Pan5Click(TObject *Sender);
+	void __fastcall Pan6Click(TObject *Sender);
+	void __fastcall Pan7Click(TObject *Sender);
+	void __fastcall Pan8Click(TObject *Sender);
+	void __fastcall Pan9Click(TObject *Sender);
+	void __fastcall Pan10Click(TObject *Sender);
+	void __fastcall Pan11Click(TObject *Sender);
+	void __fastcall Pan12Click(TObject *Sender);
+	void __fastcall Pan13Click(TObject *Sender);
+	void __fastcall Pan14Click(TObject *Sender);
+	void __fastcall Pan15Click(TObject *Sender);
+	void __fastcall Pan16Click(TObject *Sender);
+	void __fastcall Pan17Click(TObject *Sender);
+	void __fastcall Pan18Click(TObject *Sender);
+	void __fastcall Pan19Click(TObject *Sender);
+	void __fastcall Pan20Click(TObject *Sender);
+	void __fastcall Pan21Click(TObject *Sender);
+	void __fastcall Pan22Click(TObject *Sender);
+	void __fastcall Pan23Click(TObject *Sender);
+	void __fastcall Pan24Click(TObject *Sender);
+	void __fastcall Pan25Click(TObject *Sender);
+	void __fastcall Pan26Click(TObject *Sender);
+	void __fastcall Pan27Click(TObject *Sender);
+	void __fastcall Pan28Click(TObject *Sender);
+	void __fastcall Pan29Click(TObject *Sender);
+	void __fastcall Pan30Click(TObject *Sender);
+	void __fastcall Pan31Click(TObject *Sender);
+	void __fastcall Pan32Click(TObject *Sender);
+	void __fastcall Pan33Click(TObject *Sender);
+	void __fastcall Pan34Click(TObject *Sender);
+	void __fastcall Pan35Click(TObject *Sender);
+	void __fastcall Pan36Click(TObject *Sender);
+	void __fastcall Pan37Click(TObject *Sender);
+	void __fastcall Pan38Click(TObject *Sender);
+	void __fastcall Pan39Click(TObject *Sender);
+	void __fastcall Pan40Click(TObject *Sender);
+	void __fastcall Pan41Click(TObject *Sender);
+	void __fastcall Pan42Click(TObject *Sender);
+	void __fastcall Pan43Click(TObject *Sender);
+	void __fastcall Pan44Click(TObject *Sender);
+	void __fastcall Pan45Click(TObject *Sender);
+	void __fastcall Pan46Click(TObject *Sender);
+	void __fastcall Pan47Click(TObject *Sender);
+	void __fastcall Pan48Click(TObject *Sender);
+	void __fastcall Pan49Click(TObject *Sender);
+	void __fastcall Pan50Click(TObject *Sender);
+	void __fastcall Pan51Click(TObject *Sender);
+	void __fastcall Pan52Click(TObject *Sender);
+	void __fastcall Pan53Click(TObject *Sender);
+	void __fastcall Pan54Click(TObject *Sender);
+	void __fastcall Pan55Click(TObject *Sender);
+	void __fastcall Pan56Click(TObject *Sender);
+	void __fastcall Pan57Click(TObject *Sender);
+	void __fastcall Pan58Click(TObject *Sender);
+	void __fastcall Pan59Click(TObject *Sender);
+	void __fastcall Pan60Click(TObject *Sender);
+	void __fastcall Pan61Click(TObject *Sender);
+	void __fastcall Pan62Click(TObject *Sender);
+	void __fastcall Pan63Click(TObject *Sender);
+	void __fastcall Pan64Click(TObject *Sender);
+	void __fastcall Pan65Click(TObject *Sender);
+	void __fastcall Pan66Click(TObject *Sender);
+	void __fastcall Pan67Click(TObject *Sender);
+	void __fastcall Pan68Click(TObject *Sender);
+	void __fastcall Pan69Click(TObject *Sender);
+	void __fastcall Pan70Click(TObject *Sender);
+	void __fastcall Pan71Click(TObject *Sender);
+	void __fastcall Pan72Click(TObject *Sender);
+	void __fastcall Pan73Click(TObject *Sender);
+	void __fastcall Pan74Click(TObject *Sender);
+	void __fastcall Pan75Click(TObject *Sender);
+	void __fastcall Pan76Click(TObject *Sender);
+	void __fastcall Pan77Click(TObject *Sender);
+	void __fastcall Pan78Click(TObject *Sender);
+	void __fastcall Pan79Click(TObject *Sender);
+	void __fastcall Pan80Click(TObject *Sender);
+	void __fastcall Pan81Click(TObject *Sender);
+	void __fastcall Pan82Click(TObject *Sender);
+	void __fastcall Pan83Click(TObject *Sender);
+	void __fastcall Pan84Click(TObject *Sender);
+	void __fastcall Pan85Click(TObject *Sender);
+	void __fastcall Pan86Click(TObject *Sender);
+	void __fastcall Pan87Click(TObject *Sender);
+	void __fastcall Pan88Click(TObject *Sender);
+	void __fastcall Pan89Click(TObject *Sender);
+	void __fastcall Pan90Click(TObject *Sender);
+	void __fastcall Pan91Click(TObject *Sender);
+	void __fastcall Button_Custom_Color_RandClick(TObject *Sender);
+	void __fastcall Button_Custom_Color_SelectColorClick(TObject *Sender);
+	void __fastcall Button_Custom_Color_DownLoaderClick(TObject *Sender);
+	void __fastcall Button_Custom_Color_UpLoaderClick(TObject *Sender);
+	void __fastcall ComboBox_Custom_ColorGroupSelectSelect(TObject *Sender);
+	void __fastcall Button_Custom_Color_LoadBmpClick(TObject *Sender);
+	void __fastcall RadioButton_Custom_S_ModeClick(TObject *Sender);
+	void __fastcall RadioButton_Custom_M_ModeClick(TObject *Sender);
+	void __fastcall ComboBox_Custom_WorkModeGroupSelectSelect(TObject *Sender);
+	void __fastcall Edit_Custom_WorkModeTitleExit(TObject *Sender);
+	void __fastcall ComboBox_Custom_WorkModeStaticGroupSelectSelect(TObject *Sender);
+	void __fastcall RadioButton_StaticModeClick(TObject *Sender);
+	void __fastcall RadioButton_HuxiModeClick(TObject *Sender);
+	void __fastcall RadioButton_Left_to_RightClick(TObject *Sender);
+	void __fastcall RadioButton_Right_to_LeftClick(TObject *Sender);
+	void __fastcall RadioButton_Flash_ModeClick(TObject *Sender);
+	void __fastcall ComboBox_Custom_WorkModeStartSelectSelect(TObject *Sender);
+	void __fastcall ComboBox_Custom_WorkModeEndSelectSelect(TObject *Sender);
+	void __fastcall ComboBox_Custom_WorkModeTimeSelectSelect(TObject *Sender);
+	void __fastcall Button_Custom_WorkMode_DownLoadClick(TObject *Sender);
+	void __fastcall Button_Custom_WorkMode_upLoadClick(TObject *Sender);
+	void __fastcall Image_LOGO_ColorClick(TObject *Sender);
+	void __fastcall Edit_LOGO_RChange(TObject *Sender);
+	void __fastcall Edit_LOGO_RKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_LOGO_GKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_LOGO_BKeyPress(TObject *Sender, wchar_t &Key);
+	void __fastcall Edit_LOGO_GChange(TObject *Sender);
+	void __fastcall Edit_LOGO_BChange(TObject *Sender);
+	void __fastcall Button_LOGO_Eff_AppendClick(TObject *Sender);
+	void __fastcall Button_LOGO_Eff_UpClick(TObject *Sender);
+	void __fastcall Button_LOGO_Eff_DownClick(TObject *Sender);
+
+
+
+
+
+
+private:	// User declarations
+
+	//BootLoader使用的数据
+	struct _DEF_FW_INFO_STRUCT						BootLoaderHwInfo; //BL的硬件信息
+	struct
+	{
+		struct _DEF_PACK_FILE_HEAD_STRUCT				Bl_FwHeadInfo;//固件的文件头信息
+		HANDLE	Fwhandle;
+		DWORD	FwFileSize;
+	}Bl_FwFiles;
+
+
+	bool   IsCloseApplication;							//是否正要关闭本程序1=是，0=否
+	bool   IsSendFwData;								//是否正在发送固件，1=是，0=否
+	byte   TempBuff[1024*1000];							//临时的缓冲区1M
+
+
+
+
+	//-------键盘使用的数据
+	struct	_DEF_PACK_KB_HW_INFO	 											KB_FwInfo;		//键盘的固件数据
+	struct
+	{
+		int		ComboEdit_KeyEditnCol;
+		int		ComboEdit_ItemIndex;
+		int		ComboEdit_KeyEditNum;
+    }ComboEditUse;
+
+	struct
+	{
+		int		KeyLockEdit_EditCol;
+		int		KeyLockEdit_EditIndex;
+	}KeyLockUse;
+
+	//设备基本设置
+	struct _DEF_STRUCT_DEVICE_SYS_CONFIG										DeviceBaseSet;
+
+
+
+
+
+
+public:		// User declarations
+//层数据为共享的
+//层数据
+struct _DEF_STRUCT_ONE_TRIG_LAYER_CONFIG                                    LayerData[_DEF_DEFINE_TRIG_LAYER_COUNT];	//一共有多少个层
+//键码数据
+struct
+{
+	TStringList																*KbCode;
+	TStringList																*kbString;
+	TStringList																*MediaCode;
+	TStringList																*MediaString;
+}USBHidCode;
+
+//语言数据
+struct
+{
+	TStringList		*StringsIndex;	//语言的编号
+	TStringList		*Strings;		//字符串
+}Language;
+
+
+//锁定键的数据
+struct _DEF_STRUCT_LOCK_KEYS												KeyLockData;
+
+//宏的数据
+struct	_DEF_STRUCT_MACRO_ONE_GROUP											MacroData[_DEF_DEFINE_MACRO_MAX_GROUP];
+
+
+//背光控制
+#pragma pack(1)           //以下数据结构1字节对齐
+struct
+{
+	struct LED_CONFIG_COLOR_LEVEL											ColorLevel;//背光亮度等级
+	uint8_t																	EffectIndex;//当前的灯效
+	uint8_t																	EffectSpeed;//当前的动态灯效运行速度
+	uint8_t																	BKL_EffIndex;//底灯的灯效索引
+				//状态指示灯配置
+	struct	LED_STRUCT_STATUS_CONFIG										LedStatus;				//2颗指示灯的配置
+	struct	LED_STRUCT_ESC_LIG_CONFIG										ESCStatus;				//ESC灯效配置
+    struct	LED_STRUCT_LOGO_LIG_CONFIG										LOGOStatus;				//LOGO灯效配置
+}BKL_Config;
+
+
+//自定义背光效果
+struct
+{
+	#pragma pack(4)           //4字节对齐
+	TPanel *PanCount[KEYSCAN_DEF_PHY_KEY_COUNT];					//连续坐标
+	TPanel *Panxy[LED_BL_REMAP_GRAM_X][LED_BL_REMAP_GRAM_Y];		//矩阵坐标
+	#pragma pack()           //4字节对齐结束
+	//每组颜色数据
+	struct LED_CUSTOM_BL_EFFECT_STRUCT	GroupColor[_DEF_LED_CUSTOM_EFFECT_MAX_GROUP];//一共1170组数据
+	struct	LED_CUSTOM_BL_WORK_MODE_STRUCT	WorkModeGroup[LED_CUSTOM_WORK_MODE_MAX_GROUP];//一共16组工作模式的数据
+}CustomEffect;
+
+#pragma pack()           //1字节对齐结束
+//数据发送缓冲区
+
+
+//----------BootLoader使用的函数
+void	__fastcall TMainForm::GetBootLoaderFwInfo(void *FwInfo); //获取BL的固件信息
+
+
+
+
+
+//公用的通信函数
+void	__fastcall TMainForm::SendCmd(byte Cmd,byte Para1,byte Para2);
+void	__fastcall TMainForm::SendRawData(byte ReportID,void *Data);
+ULONG	__fastcall TMainForm::SendDataByPack(byte ReportID,byte Cmd,uint16_t ID,void *Data,ULONG Size);//把数据分包发送
+
+
+
+
+
+//----------键盘使用的函数
+void	__fastcall TMainForm::GetKBFwInfo(void *KbFwInfo);//获取KB的固件信息
+void	__fastcall TMainForm::GetKBBaseConfig(void * SysConfig);//获取设置
+void	__fastcall TMainForm::GetBklConfig(void * BklConfig);//获取背光的配置信息
+
+//键盘数据接收
+void	__fastcall TMainForm::RecvKbLayerDataFromDevice(void * Data);//从设备读取触发层的数据
+void	__fastcall TMainForm::RecvKeyLockDataFromDevice(void * Data);//从设备读取锁定键的数据
+void	__fastcall TMainForm::RecvMacroDataFromDevice(void * Data);//冲设备读取宏的数据
+
+
+//读取用户配置数据
+void	__fastcall TMainForm::LoadUserConfigFileData(void);//读取用户的普通键码和多媒体键码的数据
+
+WORD	__fastcall TMainForm::UserConfigFindCodeIndexFromkbList(byte KbCode);//查找一个键码所在键码列表内的值
+byte	__fastcall TMainForm::UserConfigGetKbCode(int index,String *NoteString);//获取一个键盘键码的值和提示字符串
+void	__fastcall TMainForm::UserConfigGetNoteStringByKbCode(byte KeyCode,String *NoteString);//通过键码，获取键码对应的字符串
+
+WORD	__fastcall TMainForm::UserConfigFindCodeIndexFromMediaList(WORD MediaCode);//查找一个多媒体键码在列表内的索引值
+WORD	__fastcall TMainForm::UserConfigGetMediaCode(int index,String *NoteString);//获取一个多媒体键码的值和提示字符串
+void	__fastcall TMainForm::UserConfigGetNoteStringByMediaCode(WORD KeyCode,String *NoteString);//通过键码，获取键码对应的字符串
+
+String	__fastcall TMainForm::UserConfigGetLanguageString(int index);//返回一个字符串
+
+//UI的语言初始化
+void	__fastcall TMainForm::MainFormInitLanguage(void);			   //UI的文字初始化
+
+
+//常规触发编辑器
+void	__fastcall TMainForm::RoutineEdit_InitDispData(void);//初始化常规触发编辑器的显示数据
+void	__fastcall TMainForm::RoutineEdit_DisplayAll(void); //显示所有常规触发的数据
+
+//组合键触发编辑器
+void	__fastcall TMainForm::ComboKeyEdit_InitDispData(void);//初始化编辑器数据
+void	__fastcall TMainForm::ComboKeyEdit_DisplayDownTrig(void);	//显示组合键触发器按下触发的功能
+void	__fastcall TMainForm::ComboKeyEdit_DisplayUpTrig(void);	//显示组合键触发器抬起触发的功能
+void	__fastcall TMainForm::ComboKeyEdit_DispEnableGroup(void);//显示有多少组被启用
+
+
+//连击键触发器
+void	__fastcall TMainForm::nHitKeyEdit_InitDispData(void);//初始化编辑器的数据
+void	__fastcall TMainForm::nHitKeyEdit_DisplayAll(void);//显示所有连击键的数据
+void	__fastcall TMainForm::nHitKeyEdit_DispEnableGroup(void);//显示有多少组被启用
+
+
+//多功能键触发器
+void	__fastcall TMainForm::nFuncKeyEdit_InitDispData(void);//初始化编辑器的数据
+void	__fastcall TMainForm::nFuncKeyEdit_DispEnableGroup(void);//显示被启用的组
+void	__fastcall TMainForm::nFuncKeyEdit_DisplayClickEvent(void);//显示所有多功能键的数据
+void	__fastcall TMainForm::nFuncKeyEdit_DisplayLongPressEvent(void);//显示所有多功能键的数据
+void	__fastcall TMainForm::nFuncKeyEdit_DisplayLongPressUpEvent(void);//显示所有多功能键的数据
+void	__fastcall TMainForm::nFuncKeyEdit_DispTrigTime(void);			//显示当前层的触发时间
+
+//锁定键编辑器
+void	__fastcall TMainForm::KeyLockEdit_InitDispData(void);//初始化显示的数据
+void	__fastcall TMainForm::KeyLockEdit_DisplayAllData(void);//显示所有数据
+
+
+//宏编辑器
+void	__fastcall TMainForm::MacroEdit_InitDispData(void);//初始化显示的所有数据
+void	__fastcall TMainForm::MacroEdit_DisplayAllData(void);//显示宏的所有数据
+
+
+//层状态管理器
+void	__fastcall TMainForm::LayerStatusEdit_DispLayAllData(void);//显示当前的状态
+
+
+
+//背光控制
+void	__fastcall TMainForm::Bkl_DisplayAllData(void);				//显示背光的工作状态数据
+byte	__fastcall TMainForm::GetColor_R(TColor Val);  //取得颜色分量值
+byte	__fastcall TMainForm::GetColor_G(TColor Val);
+byte	__fastcall TMainForm::GetColor_B(TColor Val);
+
+//自定义背光
+void	__fastcall TMainForm::CustomInitDisplay(void);//初始化显示的东西
+void	__fastcall TMainForm::CustomInitGramData(void);//初始化默认的颜色
+
+void	__fastcall TMainForm::CustomRemapColor(void);//重新映射自定义背光的颜色
+void	__fastcall TMainForm::CustomRemapColorMatrix(void);//映射颜色矩阵
+TPanel *__fastcall TMainForm::CustomGetPanelUseByIndex(int PanIndex);//返回一个PANEL的句柄
+void	__fastcall TMainForm::CustomGetPanelColor(int GroupID);//获取当前pan的颜色，并存入指定的组内
+void	__fastcall TMainForm::CustomSelectColor(int PanIndex);//为某组的某个按钮设置一个颜色
+void	__fastcall TMainForm::CustomDisplayGroupColor(int GroupID);//显示指定组的颜色
+
+
+
+
+//自定义背光工作模式
+void	__fastcall TMainForm::CustomWorkModeDispGroup(int GroupID);//显示当前工作组的信息
+void	__fastcall TMainForm::CustomWorkModeSaveData(int GroupID);//保存当前的设置
+
+
+
+//接收数据
+void	__fastcall TMainForm::CustomGetStaticData(void *CustomData);//获取自定义背光静态数据
+void	__fastcall TMainForm::GustomGetWorkModeData(void *WorkModeData);//获取自定义背光工作模式数据
+
+
+
+
+
+
+
+
+
+//消息处理函数
+void   __fastcall On_GetRecvData(Messages::TMessage &Message);         //处理TCP信息的函数
+void   __fastcall On_HidDisConnect(Messages::TMessage &Message);      //HID连接被断开
+void   __fastcall On_SendDataSuccess(Messages::TMessage &Message);		//数据发送完成
+
+//拦截系统的消息
+BEGIN_MESSAGE_MAP
+MESSAGE_HANDLER(ON_GET_RECV_DATA,TMessage,On_GetRecvData);   //收到HID设备发来的数据
+MESSAGE_HANDLER(ON_HID_DISCONNECT,TMessage,On_HidDisConnect);  //hid设备断开连接
+MESSAGE_HANDLER(ON_SEND_DATA_SUCCESS,TMessage,On_SendDataSuccess);//发送数据给HID设备完成
+END_MESSAGE_MAP(TForm)
+
+	__fastcall TMainForm(TComponent* Owner);
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TMainForm *MainForm;
+//---------------------------------------------------------------------------
+#endif
